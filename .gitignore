@@ -239,3 +239,7 @@ captures/
 *.pcap
 *.pcapng
 .DS_Store
+telemetry_latest.json
+telemetry_latest.json.tmp
+__pycache__/
+.DS_Store
