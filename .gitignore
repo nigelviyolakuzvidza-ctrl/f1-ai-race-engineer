@@ -218,3 +218,24 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project-specific: frontend, local settings, telemetry and AWS
+node_modules/
+coverage/
+.vite/
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+.aws/
+.aws-sam/
+.samconfig.toml
+.terraform/
+*.tfstate
+*.tfstate.*
+data/raw/
+captures/
+*.pcap
+*.pcapng
+.DS_Store
