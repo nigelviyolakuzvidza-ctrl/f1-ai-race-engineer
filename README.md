@@ -11,6 +11,10 @@ A real-time race analytics and AI engineer project for **F1 25 on PlayStation 5*
 - Deploy secure, monitored AWS services for race-session storage and analysis.
 - Provide data-grounded AI coaching and eventually spoken race-engineer interaction.
 
+## Complete project roadmap
+
+The full goals, implementation tasks, deliverables and agreed dashboard requirements for every phase are documented in **[docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md)**. This is the authoritative project plan for all future phase conversations.
+
 ## Six-phase roadmap
 1. **PS5 telemetry** — configure UDP, write a Python receiver and validate packet data.
 2. **Live dashboard** — React/TypeScript, local WebSockets, telemetry graphs, leaderboard and track map.
