@@ -1,0 +1,50 @@
+:root {
+  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  color: #edf3fb;
+  background: #080e16;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-weight: 400;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 360px;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:focus-visible {
+  outline: 2px solid #39d6f5;
+  outline-offset: 4px;
+}
+button:hover {
+  background: #203448;
+}
+#root {
+  min-height: 100vh;
+}
+h1,
+h2,
+p,
+ol {
+  margin: 0;
+}
+svg {
+  display: block;
+}
+button {
+  color: inherit;
+}
+::selection {
+  background: #245568;
+  color: #fff;
+}
