@@ -1117,3 +1117,8 @@ footer b {
     scroll-behavior: auto !important;
   }
 }
+@media (min-width: 1024px) {
+  #root {
+    zoom: 0.85;
+  }
+}

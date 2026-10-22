@@ -24,3 +24,32 @@ Confirm PS5/MacBook network setup and Python version; configure F1 25 telemetry 
 
 ### Evidence to capture
 Document setup, sample *sanitised* packet metadata, test results, architecture changes, screenshots and cost decisions as phases progress.
+
+### Phase 1 — PS5 Telemetry Integration
+
+**Status:** In Progress
+
+#### Completed milestones
+- [x] Configured F1 25 UDP telemetry on PS5.
+- [x] Identified the MacBook's local IP address.
+- [x] Established UDP communication over the local network.
+- [x] Created a Python UDP receiver using the `socket` library.
+- [x] Successfully received live telemetry packets on UDP port `20777`.
+- [x] Committed the initial receiver to GitHub.
+
+#### Technical configuration
+- **Platform:** PlayStation 5 — F1 25
+- **Receiver:** macOS / Python 3.9.6
+- **Protocol:** UDP over IPv4
+- **Port:** 20777
+- **Telemetry format:** 2025
+- **Configured send rate:** 60 Hz
+
+#### Next milestones
+- [ ] Decode binary UDP telemetry packets.
+- [ ] Extract speed, throttle, brake, gear and lap data.
+- [ ] Validate decoded values against live gameplay.
+- [ ] Implement structured telemetry output.
+
+#### Key learning
+Established a working local-network telemetry pipeline between a PS5 and MacBook using Python sockets. Verified that the game transmits UDP packets that can be captured for further processing.
