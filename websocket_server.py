@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 from websockets.asyncio.server import serve
+from race_analysis import RaceAnalysis
 
 # Server configuration
 HOST = "127.0.0.1"
@@ -21,6 +22,8 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger("f1-websocket")
+analysis = RaceAnalysis()
+analysis_lock = asyncio.Lock()
 
 
 async def telemetry_handler(websocket):
@@ -39,11 +42,12 @@ async def telemetry_handler(websocket):
                     ) as file:
                         telemetry = json.load(file)
 
-                    # Only transmit when the snapshot changes.
-                    snapshot = json.dumps(
-                        telemetry,
-                        allow_nan=False
-                    )
+                    # Process once per unique telemetry timestamp across all clients.
+                    async with analysis_lock:
+                        if telemetry.get("timestamp") != analysis.last_timestamp:
+                            analysis.process(telemetry)
+                        telemetry["race_analysis"] = analysis.payload()
+                    snapshot = json.dumps(telemetry, allow_nan=False)
 
                     if snapshot != last_snapshot:
                         await websocket.send(snapshot)

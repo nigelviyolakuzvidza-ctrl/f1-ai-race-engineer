@@ -92,6 +92,16 @@ function CarDrawing() {
   );
 }
 
+type LapSample = { distance: number; x: number; z: number; speed: number; throttle: number; brake: number };
+type LapRecord = { lap_number: number; lap_time_ms: number; samples: LapSample[] };
+type RaceAnalysisPayload = {
+  track: TrackMap | null;
+  last_lap: LapRecord | null;
+  best_lap: LapRecord | null;
+  current_lap: { lap_number: number | null; samples: LapSample[] };
+  recording: boolean;
+};
+
 type TrackPoint = {
   x: number;
   z: number;
@@ -106,10 +116,12 @@ function TrackPreview({
   trackId,
   worldX,
   worldZ,
+  automaticTrack,
 }: {
   trackId: number;
   worldX: number;
   worldZ: number;
+  automaticTrack?: TrackMap | null;
 }) {
   const [track, setTrack] = useState<TrackMap | null>(null);
 
@@ -144,7 +156,9 @@ function TrackPreview({
     };
   }, [trackId]);
 
-  if (!track) {
+  const activeTrack = automaticTrack?.track_id === trackId ? automaticTrack : track;
+
+  if (!activeTrack) {
     return (
       <div className="track-preview">
         <div className="map-note">
@@ -155,8 +169,8 @@ function TrackPreview({
     );
   }
 
-  const xs = track.points.map((point) => point.x);
-  const zs = track.points.map((point) => point.z);
+  const xs = activeTrack.points.map((point) => point.x);
+  const zs = activeTrack.points.map((point) => point.z);
 
   const minX = Math.min(...xs);
   const maxX = Math.max(...xs);
@@ -177,7 +191,7 @@ function TrackPreview({
     y: height / 2 - (z - (minZ + maxZ) / 2) * scale,
   });
 
-  const path = track.points
+  const path = activeTrack.points
     .map((point, index) => {
       const position = project(point.x, point.z);
       return `${index === 0 ? "M" : "L"}${position.x.toFixed(2)} ${position.y.toFixed(2)}`;
@@ -294,8 +308,58 @@ function Chart({
     </div>
   );
 }
+function LapComparison({ analysis }: { analysis: RaceAnalysisPayload | null }) {
+  const best = analysis?.best_lap;
+  const current = analysis?.current_lap.samples ?? [];
+  const reference = best?.samples ?? [];
+  const nearest = (samples: LapSample[], distance: number) => {
+    if (!samples.length) return null;
+    let low = 0, high = samples.length - 1;
+    while (low < high) {
+      const mid = Math.floor((low + high) / 2);
+      if (samples[mid].distance < distance) low = mid + 1;
+      else high = mid;
+    }
+    return samples[low];
+  };
+  const maxDistance = Math.max(reference[reference.length - 1]?.distance ?? 0, current[current.length - 1]?.distance ?? 0);
+  const chartData = Array.from({ length: 100 }, (_, index) => {
+    const distance = maxDistance * index / 99;
+    const currentSample = nearest(current, distance);
+    const bestSample = nearest(reference, distance);
+    return {
+      distance: Math.round(distance),
+      currentSpeed: currentSample && Math.abs(currentSample.distance - distance) < 80 ? currentSample.speed : null,
+      bestSpeed: bestSample && Math.abs(bestSample.distance - distance) < 80 ? bestSample.speed : null,
+    };
+  });
+  return (
+    <Panel title="LAP COMPARISON" extra={<span className="eyebrow">SPEED · DISTANCE-ALIGNED</span>}>
+      <div style={{ padding: "12px 16px" }}>
+        <p style={{ margin: "0 0 10px", color: "#94a7bc", fontSize: 12 }}>
+          Best completed lap: {best ? formatLap(best.lap_time_ms) : "Awaiting a complete valid lap"}
+          {analysis?.last_lap ? ` · Last: ${formatLap(analysis.last_lap.lap_time_ms)}` : ""}
+        </p>
+        <div style={{ height: 210 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 10, right: 18, bottom: 5, left: -15 }}>
+              <CartesianGrid stroke="#273446" strokeDasharray="2 4" vertical={false} />
+              <XAxis dataKey="distance" tick={{ fill: "#94a7bc", fontSize: 10 }} unit="m" />
+              <YAxis domain={[0, 350]} tick={{ fill: "#94a7bc", fontSize: 10 }} unit="" />
+              <Tooltip contentStyle={{ background: "#111d2b", border: "1px solid #36495e" }} />
+              <Line dataKey="bestSpeed" name="Best lap (km/h)" stroke="#36d6f5" strokeWidth={2} dot={false} connectNulls={false} isAnimationActive={false} />
+              <Line dataKey="currentSpeed" name="Current lap (km/h)" stroke="#ffad42" strokeWidth={2} dot={false} connectNulls={false} isAnimationActive={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 function App() {
   const [data, setData] = useState<Telemetry>(recorded);
+  const [analysis, setAnalysis] = useState<RaceAnalysisPayload | null>(null);
   const [liveTrace, setLiveTrace] = useState<TracePoint[]>([]);
   const [source, setSource] = useState("Recorded PS5 snapshot");
   const [error, setError] = useState("");
@@ -316,6 +380,8 @@ function App() {
       }
 
       setData(parsed);
+      const extra = (parsed as Telemetry & { race_analysis?: RaceAnalysisPayload }).race_analysis;
+      if (extra) setAnalysis(extra);
 
 setLiveTrace((previous) => {
   const now = Date.now() / 1000;
@@ -581,6 +647,7 @@ setError("");
   trackId={data.session.track_id}
   worldX={data.motion.world_x}
   worldZ={data.motion.world_z}
+  automaticTrack={analysis?.track}
 />
             </Panel>
           </div>
@@ -728,6 +795,7 @@ setError("");
               <Chart inputs trace={liveTrace} />
             </Panel>
           </div>
+          <div style={{ marginTop: 16 }}><LapComparison analysis={analysis} /></div>
         </main>
       </div>
       <footer>

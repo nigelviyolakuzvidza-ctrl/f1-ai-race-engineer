@@ -125,3 +125,30 @@ python track_recorder.py
 After recording, copy the saved circuit JSON into `frontend/public/tracks/` to make it available to the dashboard.
 
 ## 6. Validation completed
+## Phase 2 Enhancements — Automatic Track Recording and Lap Comparison
+
+### Automatic circuit recording
+- `race_analysis.py` processes live telemetry received through the WebSocket server.
+- Uses session identifiers and track information to distinguish circuits.
+- Records circuit coordinates and saves new track maps under `data/tracks/`.
+- Supports existing circuit maps as a fallback.
+
+### Live lap comparison
+- Records speed, throttle, braking and distance throughout each lap.
+- Detects completed laps and validates telemetry coverage.
+- Tracks the latest completed lap and fastest valid recorded lap.
+- Displays distance-aligned speed comparisons in the React dashboard.
+- Saves lap recordings locally under `data/laps/`.
+
+### Architecture
+PS5 → UDP Receiver → WebSocket Server → Race Analysis → React Dashboard
+
+### Data management
+- Recorded lap files are excluded from Git using `.gitignore`.
+- Temporary upgrade backups are excluded from Git.
+- Race analysis currently runs locally without AWS infrastructure.
+
+### Verification
+- Live lap comparison confirmed working.
+- Best and latest lap JSON files successfully generated.
+- React production build completed successfully.

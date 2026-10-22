@@ -252,3 +252,7 @@ f1-dashboard-frontend.zip
 # Local dashboard backups
 frontend/src/App.backup.tsx
 frontend/src/App.before-track-map.bak
+
+# Generated race analysis data
+data/laps/
+*.before-analysis-upgrade.bak
