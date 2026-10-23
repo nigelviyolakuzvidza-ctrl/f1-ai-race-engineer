@@ -22,12 +22,12 @@ PS5 F1 25 --UDP:20777--> udp_receiver.py
 - Phase 4 AI engineer banner is a placeholder, not live AI coaching.
 
 ## Automatic track recording and lap comparison
-`race_analysis.py` tracks session UID, track ID and track length; it accumulates position, distance, speed, throttle and brake samples. On sequential lap transitions, it validates coverage, monotonicity and validity before accepting a completed lap. It writes latest and fastest accepted laps to local JSON files using temporary files and atomic replacement. When no track geometry exists, it can save a near-closed circuit from a validated lap.
+`race_analysis.py` The system records key session and track information, including track length, car position, speed, throttle and braking. As each lap is completed, it checks that the data is accurate and complete before saving it. Valid laps are stored locally in JSON files, keeping a record of the latest and fastest laps. If a track layout has not already been saved, the system can also use the recorded car positions from a completed lap to create one automatically.
 
 `track_recorder.py` is also present as an independent, manually run track-recording utility. Track geometry under `data/tracks/` is not always automatically copied into `frontend/public/tracks/`; static assets are used for browser track loading.
 
 ## Run locally
-Install Python dependencies (including `websockets`) in `.venv`, and frontend npm dependencies. Then use three terminals from the repository root:
+Installed Python dependencies (including `websockets`) in `.venv`, and frontend npm dependencies. Then used three terminals from the repository root:
 
 Terminal 1:
 ```bash
@@ -44,15 +44,13 @@ Terminal 3:
 cd frontend
 npm run dev
 ```
-Open the Vite URL. The server accepts the configured localhost origins (5173/5174).
+npm run dev generates the Vite URL. The server accepts the configured localhost origins. It is here we can view the dashboard.
 
 ## Verification documented during Phase 2
 - Local WebSocket feed and React dashboard displayed live PS5 telemetry.
 - Automatic track recording and lap comparison were reported working.
 - Latest and best lap JSON files were generated.
 - React production build was reported successful.
-
-These are prior validation results, not fresh tests performed for this documentation update.
 
 ## Known limitations
 - Race analysis is invoked from the WebSocket client handler; without a connected dashboard, automatic recording may not progress.
