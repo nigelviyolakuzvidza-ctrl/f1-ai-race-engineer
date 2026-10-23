@@ -1,45 +1,103 @@
-# F1 AI Race Engineer — dashboard frontend
+# F1 AI Race Engineer — Dashboard Frontend
 
-React + TypeScript + Vite implementation of the approved race-control design. Existing package versions and entry point are preserved. No AWS resources or extra dependencies are required.
+The frontend is a **React + TypeScript + Vite** race-control dashboard for telemetry from **F1 25 on PlayStation 5**. It receives processed data from a Python WebSocket service running locally on the Mac. AWS integration and AI voice coaching are not implemented in this frontend yet.
 
-## Run on your Mac
+For the overall project architecture and roadmap, see the [repository README](../README.md).
 
-1. Keep a backup of your current `frontend` folder.
-2. Copy this folder's contents into your project's `frontend` folder (or use it as the replacement frontend). Do not copy `node_modules` from the ZIP.
-3. In your VS Code terminal, from the project's `frontend` folder:
+## Features
 
+- Live speed, gear, RPM, throttle, braking, DRS, fuel, ERS, tyre condition, vehicle damage, session information and leaderboard.
+- Real telemetry traces for speed and combined throttle/brake inputs, using a rolling 30-second window when connected.
+- Track visualisation from recorded circuit coordinates, with a position marker derived from the car's world coordinates.
+- Distance-aligned speed comparison between the current lap and the best completed valid lap.
+- A bundled PS5 telemetry snapshot for initial display, plus a **Load snapshot** option for importing a local JSON file.
+- A Phase 4 AI race engineer placeholder; no AI guidance is generated yet.
+
+## Prerequisites
+
+- Node.js and npm installed.
+- Python environment and dependencies configured for the repository's UDP receiver and WebSocket server.
+- For **live** data: F1 25 on PS5 configured to send UDP telemetry to the Mac's LAN IP on port `20777`.
+
+## Run locally
+
+From the repository root, start the telemetry pipeline in separate terminals:
+
+**Terminal 1 — UDP receiver**
 ```bash
-npm install
+source .venv/bin/activate
+python udp_receiver.py
+```
+
+**Terminal 2 — WebSocket server**
+```bash
+source .venv/bin/activate
+python websocket_server.py
+```
+
+**Terminal 3 — frontend**
+```bash
+cd frontend
+npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. Stop the dev server with Ctrl+C.
+Open the URL printed by Vite (typically `http://localhost:5173`; it may use `5174` if the first port is occupied). Use **Ctrl+C** in each terminal to stop the processes.
 
-For an existing installation, the only required changes are `src/App.tsx`, `src/App.css`, `src/index.css`, the new `src/data/telemetry-sample.json`, and the page title in `index.html`. `main.tsx`, package dependencies, and Vite configuration remain as uploaded. The older `TelemetryGauges` component is preserved but no longer imported.
+## How live data reaches the dashboard
 
-## What works now
+```text
+PS5 / F1 25
+    │ UDP :20777
+    ▼
+udp_receiver.py
+    │ writes telemetry_latest.json
+    ▼
+websocket_server.py
+    │ invokes race_analysis.py for track/lap data
+    │ WebSocket ws://127.0.0.1:8765
+    ▼
+frontend/src/App.tsx
+    ├── race telemetry panels
+    ├── rolling speed and throttle/brake charts
+    ├── recorded circuit and car position
+    └── lap comparison
+```
 
-- Responsive race-control layout, standings, lap/sector timing, speed, gear, RPM, throttle and brake gauges, DRS, fuel, ERS, tyre wear/inner temperatures, vehicle damage, session/weather and recent race events.
-- Starts with the supplied real PS5 recording. It is labelled **snapshot mode — not live**.
-- **Load snapshot** opens a local `telemetry_latest.json`; no file is uploaded to a service. Import requires the complete supplied schema. Refresh returns to the bundled recording.
-- Hover the charts for illustrative values.
+The Python WebSocket server checks the telemetry file approximately every **0.2 seconds** and sends changed snapshots to connected clients. Track and lap analysis currently runs within the server's client-handling path, so recording depends on an active dashboard connection.
 
-## Data correctness and pending work
+## Configuration and connection behaviour
 
-- The speed and combined throttle/brake charts use clearly labelled synthetic illustrative traces. The supplied JSON is one snapshot, so it cannot supply historical samples. These traces do not represent the recorded drive and do not change when importing a snapshot.
-- Standings use car numbers because participants/names are not present. Last lap is shown instead of inventing gaps; zero/missing lap times display a dash. Standings colours are decorative car markers, not verified team identities.
-- Best lap displays a dash until lap history is collected. The bundled session UID exceeds JavaScript's safe integer range; it is not used as an identifier. A future transport should send it as a string.
-- Tyre arrays are displayed using the raw F1 order **RL, RR, FL, FR** (indices 0, 1, 2, 3). Verify whether the receiver reorders them before live integration.
-- ERS percentage uses a nominal 4 MJ maximum; fuel bar uses the supplied tank capacity. Fuel remaining is the game's estimate.
-- Front-wing summary is the maximum of left/right damage, with both values shown underneath when damaged. Event list is session-wide, not necessarily player events.
-- The static track outline is an illustrative layout preview, with no live car mapping. AI banner is a Phase 4 placeholder. Track ID 0 is Melbourne; session type 15 is the race/Grand Prix label for this supplied recording.
-- Next: connect the existing Python receiver through a local WebSocket, handle stale/disconnected data, collect real rolling chart samples, then validate positional mapping. No WebSocket server was supplied, and none is assumed here.
+- The frontend WebSocket URL is currently hard-coded in `src/App.tsx` as `ws://127.0.0.1:8765`.
+- The Python server listens on loopback port `8765` and accepts development origins at `localhost` or `127.0.0.1`, ports `5173` and `5174`.
+- The dashboard begins with a bundled PS5 snapshot and switches to live data when valid WebSocket messages arrive.
+- The connection status and error messages are shown in the UI. The current implementation does **not** automatically reconnect after a disconnected WebSocket; refresh the page after restarting the server.
+- **Load snapshot** reads a local JSON file in the browser; it does not upload the file to AWS or another service.
 
-## Validation
+## Data notes and current limitations
+
+- Rolling live speed and throttle/brake charts use incoming samples; they are not fabricated historical telemetry.
+- The lap comparison requires valid completed-lap data from `race_analysis.py`. Local `*_last.json` and `*_best.json` files are overwritten as new laps are recorded; full lap history is not retained.
+- A recorded track is shown when available from the analysis payload; the frontend can also try a matching static track JSON file. Other circuits may initially show **No recorded map for this circuit yet**.
+- Leaderboard entries use car numbers where driver names are unavailable. Missing lap times are shown as dashes rather than estimated values.
+- Tyre indices follow the incoming data order (RL, RR, FL, FR), mapped to the correct dashboard positions.
+- ERS percentage is calculated against a nominal 4 MJ capacity. The AI engineer panel is a visual placeholder.
+- The best-lap value in the timing strip is still a placeholder; the lap comparison panel separately displays the best completed valid lap when available.
+
+## Validate the frontend
+
+From `frontend/`:
 
 ```bash
 npm run build
 npm run lint
 ```
 
-Validation completed here: TypeScript compilation, Vite production bundling and ESLint passed. Browser visual verification could not run because the browser download was unavailable. Check the layout on your Mac using npm run dev. Vite reports a non-blocking chunk size advisory for the chart library.
+These commands compile and bundle the frontend and run ESLint. They do not replace testing against a live PS5 telemetry session.
+
+## Further documentation
+
+- [Phase 1 — Telemetry](../docs/PHASE_1_TELEMETRY.md)
+- [Phase 2 — Dashboard and analysis](../docs/PHASE_2_DASHBOARD.md)
+- [Architecture and design decisions](../docs/architecture.md)
+- [Project progress](../PROJECT_PROGRESS.md)
