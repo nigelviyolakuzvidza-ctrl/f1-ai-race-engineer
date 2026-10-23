@@ -35,7 +35,7 @@ Python UDP Receiver
 telemetry_latest.json
      |
      v
-Phase 2 — React Dashboard (planned)
+Phase 2 — React Dashboard (now implemented; see Phase 2 documentation)
 ```
 
 All Phase 1 processing happens locally. No AWS resources or cloud services are required.
@@ -240,7 +240,7 @@ Generated telemetry snapshots are excluded from Git tracking.
 - The current JSON file contains the latest telemetry snapshot rather than a complete historical trace.
 - Lap comparisons require collecting and aligning telemetry samples.
 - Track mapping requires further validation of positional data.
-- The local WebSocket server and React dashboard have not yet been implemented.
+- The local WebSocket server and React dashboard were subsequently implemented in Phase 2.
 - AWS storage and AI services are planned for later phases.
 
 ## 13. Phase 1 Outcome
@@ -249,4 +249,4 @@ Phase 1 has delivered a working local telemetry feed from F1 25 on PS5 to a Pyth
 
 The implementation demonstrates UDP networking, binary protocol decoding, structured state management, JSON serialisation, diagnostics and practical debugging.
 
-**Next phase:** Build a live React dashboard with a local WebSocket connection, telemetry gauges, lap timing, standings and live throttle/brake charts.
+**Subsequent progress:** Phase 2 implemented the local WebSocket dashboard, automatic track recording and lap comparison. See [Phase 2 documentation](PHASE_2_DASHBOARD.md).
