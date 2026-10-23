@@ -1,56 +1,47 @@
 # Architecture and Design Decisions
 
-**Status:** Proposed architecture; not yet deployed.
+**Status: Phases 1–2 implemented locally; Phase 3 AWS backend proposed, not deployed.**
 
-## Context
-F1 25 on PS5 can transmit telemetry over the local network using UDP. A MacBook will receive packets, parse them and supply a browser dashboard. Selected data and summaries may be sent to AWS for storage and AI-assisted analysis.
-
-## Conceptual data flow
+## Implemented local data flow
 ```text
 PS5 / F1 25
-   | UDP on LAN
-   v
-MacBook Python UDP listener -> parser / validation -> local metrics
-                                                |             |
-                                                v             v
-                                        WebSocket server   secure upload
-                                                |             |
-                                                v             v
-                                         React dashboard   AWS API Gateway
-                                                              |
-                                                           Lambda
-                                                           /    \
-                                                     DynamoDB   S3
-                                                              |
-                                                  summaries / Bedrock
+  | UDP, format 2025, port 20777
+  v
+udp_receiver.py -> telemetry_latest.json (atomic snapshot, ~5 Hz)
+                       |
+                       v
+                 websocket_server.py (localhost:8765)
+                       |                     |
+                       v                     v
+                 race_analysis.py       React dashboard
+                       |
+                data/tracks/ and data/laps/
 ```
-This is a logical design, not a claim that all listed services are required.
+`race_analysis.py` is currently called by the WebSocket server when processing fresh telemetry for a connected client. It creates track geometry and best/last lap recordings. The dashboard also uses track files in `frontend/public/tracks/`.
 
-## Decisions
-### ADR-001 — Local first
-Prove and validate packet reception and parsing before cloud deployment. This reduces cost and simplifies troubleshooting.
+## Proposed Phase 3 (not deployed)
+```text
+MacBook local recording -> durable completed-lap files
+                       -> persistent upload queue + retry
+                       -> HTTPS API Gateway HTTP API
+                       -> Lambda
+                           |--> DynamoDB: session and lap metadata
+                           +--> S3: full lap samples and exports
+```
+Provision with AWS SAM/CloudFormation. Use IAM least privilege, authentication, CloudWatch logs/alarms and cost controls. Keep real-time rendering and telemetry decoding local. No direct per-packet cloud upload is planned.
 
-### ADR-002 — Separate low-latency and cloud workloads
-Use local deterministic calculations for immediate feedback; use AWS for persistence, session summaries and contextual AI analysis. Cloud connectivity should not be required for basic live telemetry.
+## Architecture decisions
+- **ADR-001 Local-first:** PS5 UDP decoding and immediate dashboard updates run locally.
+- **ADR-002 Separate low-latency from cloud:** AWS persists completed laps and summaries; connectivity is not needed for racing.
+- **ADR-003 Serverless starting point:** Evaluate API Gateway HTTP API, Lambda, DynamoDB and S3 before deploying; avoid unnecessary streaming infrastructure.
+- **ADR-004 Data-grounded AI:** Compute driving metrics deterministically; later Bedrock explanations must use recorded evidence.
+- **ADR-005 Security and cost:** Authenticate requests, avoid committed secrets, apply least-privilege IAM, limit logs and retention, and set budget alerts. Target £5/month, not a guaranteed cap.
+- **ADR-006 Proposed durable ingestion:** Store uniquely identified laps locally, queue uploads across restarts and use idempotent backend handling. Not implemented yet.
 
-### ADR-003 — Serverless AWS starting point
-Evaluate API Gateway, Lambda, DynamoDB and S3 with SAM/CloudFormation. Choose ingestion cadence and payload sizes after measuring telemetry volume; avoid uploading every packet by default.
+## Known technical limitations
+- Best/last lap files overwrite earlier versions; no complete local history.
+- Race analysis currently depends on WebSocket client processing.
+- Cloud resources, persistent upload queue and AI/voice services do not yet exist.
 
-### ADR-004 — Data-grounded AI
-Calculate measurable driving metrics in code. Supply relevant metrics and race context to Bedrock for explanations and coaching; do not treat generated recommendations as measured facts.
-
-### ADR-005 — Cost and security
-Use least-privilege IAM, avoid embedded credentials, authenticate cloud uploads, minimise retention and set budget/monitoring controls before deployment. MSK/Flink are exploratory future options, not initial dependencies.
-
-## Open questions to validate in Phase 1
-- Exact F1 25 UDP packet version and supported fields
-- Availability of other cars' telemetry and position data
-- Packet rate, size, drop behaviour and local network reliability
-- Timing and alignment approach for lap comparisons
-- Appropriate retention and upload frequency for AWS
-
-## Planned dashboard
-Dark multi-panel race-control view based on the project's supplied visual reference: full-width AI message banner, standings, live gauges, track map, car/tyre condition and live charts. Throttle and brake must appear as two overlaid traces on one 0–100% plot.
-
-## Portfolio evidence
-Record decisions, validation tests, failure handling, diagrams, AWS costs and operational lessons throughout development.
+## Documentation
+See [roadmap](PROJECT_ROADMAP.md), [Phase 1](PHASE_1_TELEMETRY.md), [Phase 2](PHASE_2_DASHBOARD.md), and [progress tracker](../PROJECT_PROGRESS.md).

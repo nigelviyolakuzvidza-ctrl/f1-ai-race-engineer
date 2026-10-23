@@ -1,8 +1,10 @@
 # Project Roadmap: AI F1 Race Engineer
 
-This document is the **authoritative six-phase project roadmap**. Refer to it when starting each phase. Update progress separately in [PROJECT_PROGRESS.md](../PROJECT_PROGRESS.md).
+This document is the **authoritative six-phase project roadmap**. As of 2026-10-23, Phases 1–2 are operational locally; Phase 3 is planning only. Refer to it when starting each phase. Update progress separately in [PROJECT_PROGRESS.md](../PROJECT_PROGRESS.md).
 
 ## Phase 1 — Connect to the F1 game
+
+**Implementation status: completed and validated.**
 
 **Foundation**
 
@@ -16,6 +18,8 @@ This document is the **authoritative six-phase project roadmap**. Refer to it wh
 **Deliverable:** A working telemetry feed.
 
 ## Phase 2 — Build a live racing dashboard
+
+**Implementation status: core dashboard, automatic track recording and lap comparison operational locally.**
 
 **Goal:** Turn raw packets into something useful.
 
@@ -42,6 +46,8 @@ Use the race-control dashboard reference image shared during planning as inspira
 - Confirm availability of other drivers' detailed telemetry before planning competitor input comparisons.
 
 ## Phase 3 — Build the AWS backend
+
+**Implementation status: planning; no AWS backend deployed.**
 
 **Goal:** Turn the prototype into a cloud engineering project.
 

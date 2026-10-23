@@ -1,42 +1,58 @@
 # F1 AI Race Engineer
 
-**Status: Planning — implementation not started.**
+**Status: Phases 1–2 operational locally; Phase 3 AWS backend in planning (not deployed).**
 
-A real-time race analytics and AI engineer project for **F1 25 on PlayStation 5**, using a MacBook, Python, React and AWS. Built as a hands-on cloud engineering portfolio project.
+A portfolio project using real F1 25 telemetry from PlayStation 5, a Python receiver on macOS, a React/TypeScript race-control dashboard, and a planned serverless AWS backend.
 
-## Goals
-- Receive and decode genuine F1 25 UDP telemetry on a MacBook.
-- Build a multi-panel React race-control dashboard with live gauges, track map, standings and lap charts.
-- Show **throttle and brake as two overlaid lines on one 0–100% chart**.
-- Deploy secure, monitored AWS services for race-session storage and analysis.
-- Provide data-grounded AI coaching and eventually spoken race-engineer interaction.
+## Implemented features
+- Receives F1 25 UDP packets on port 20777 and decodes supported motion, session, lap, event, car telemetry, status and damage fields.
+- Publishes the latest structured telemetry snapshot to `telemetry_latest.json` approximately five times per second.
+- Streams local snapshots to a React dashboard over a Python WebSocket server at `ws://127.0.0.1:8765`.
+- Displays live speed, gear, RPM, throttle/brake, lap timing, leaderboard, vehicle condition, and supported circuit maps.
+- Shows throttle and brake together on a shared 0–100% chart.
+- Records track geometry automatically when sufficient valid lap samples are available, and renders the player's position from world coordinates.
+- Compares current, latest and fastest recorded laps using distance-aligned speed samples.
 
-## Complete project roadmap
-
-The full goals, implementation tasks, deliverables and agreed dashboard requirements for every phase are documented in **[docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md)**. This is the authoritative project plan for all future phase conversations.
-
-## Six-phase roadmap
-1. **PS5 telemetry** — configure UDP, write a Python receiver and validate packet data.
-2. **Live dashboard** — React/TypeScript, local WebSockets, telemetry graphs, leaderboard and track map.
-3. **AWS backend** — SAM/CloudFormation, API Gateway, Lambda, DynamoDB, S3, IAM and CloudWatch.
-4. **AI race engineer** — Bedrock explanations based on calculated metrics and session summaries.
-5. **Voice and live coaching** — spoken questions, responses and event-driven coaching.
-6. **Advanced analytics and portfolio** — evaluate MSK/Flink, improve reports and publish a demo.
-
-## Proposed data flow
+## Current architecture
 ```text
-PS5 (F1 25 UDP) -> MacBook (Python collector + local calculations)
-                            |                      |
-                      WebSocket server       Secure AWS ingestion
-                            |                      |
-                      React dashboard       Lambda -> DynamoDB / S3
-                                                   |
-                                            Summaries -> Bedrock
+PS5 / F1 25 UDP
+   -> udp_receiver.py -> telemetry_latest.json
+   -> websocket_server.py -> race_analysis.py (track and lap processing)
+                           -> React / Vite dashboard
 ```
+All of this currently runs on the MacBook. No AWS backend or AI/voice coaching has been deployed.
 
-This architecture is **proposed, not deployed**. We'll validate which game data is available and measure traffic before finalising ingestion and storage.
+## Running locally
+With Python dependencies installed in `.venv` and frontend dependencies installed:
+```bash
+source .venv/bin/activate
+python udp_receiver.py
+```
+In a second terminal:
+```bash
+source .venv/bin/activate
+python websocket_server.py
+```
+In a third terminal:
+```bash
+cd frontend
+npm run dev
+```
+The browser dashboard connects to the local WebSocket service. The separate `track_recorder.py` script remains available as a manual recording utility; `race_analysis.py` also supports automatic track recording.
 
-## Engineering principles
-Work incrementally, understand the code, document tests and decisions, use least-privilege IAM, minimise AWS costs, and never commit secrets.
+## Known limitations
+- `race_analysis.py` runs as part of the WebSocket server's client-handling path, so processing currently depends on an active dashboard connection.
+- Local lap files named `*_last.json` and `*_best.json` are overwritten as new laps are recorded; complete historical lap retention is not implemented.
+- Generated `data/laps/` and `telemetry_latest.json` are ignored by Git.
+- The frontend displays a Phase 4 AI engineer placeholder, not a working AI service.
+- AWS ingestion, authentication, durable uploads, and cloud monitoring are proposed only.
 
-See [project progress](PROJECT_PROGRESS.md) and [architecture notes](docs/architecture.md).
+## Roadmap and documentation
+- [Six-phase project roadmap](docs/PROJECT_ROADMAP.md)
+- [Phase 1 telemetry](docs/PHASE_1_TELEMETRY.md)
+- [Phase 2 dashboard and analysis](docs/PHASE_2_DASHBOARD.md)
+- [Architecture and decisions](docs/architecture.md)
+- [Progress and next steps](PROJECT_PROGRESS.md)
+
+## Next phase
+Plan and implement an AWS backend using SAM/CloudFormation, API Gateway, Lambda, DynamoDB, S3, IAM and CloudWatch. Preserve the local dashboard; first make completed lap recordings durable and uploads retryable. Target budget: £5/month. No deployment has occurred.

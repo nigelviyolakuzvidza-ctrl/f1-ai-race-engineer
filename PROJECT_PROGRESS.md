@@ -1,55 +1,40 @@
 # Project Progress
 
-## 2026-10-21 — Step 0: Project planning and repository setup
-**Status:** Documentation initialised; implementation not started.
+**Updated: 2026-10-23.** Status reflects code in the repository, not a new live validation run.
 
-### Decisions
-- One repository and separate ChatGPT conversations for each phase.
-- Python UDP receiver on MacBook is the first technical milestone.
-- React/TypeScript race-control dashboard with AI message banner, track map, leaderboard, gauges and **combined overlaid throttle/brake line chart**.
-- Local processing for low-latency feedback; AWS for storage and deeper analytics.
-- Use AWS SAM/CloudFormation for infrastructure as code when the cloud phase begins.
-- Prioritise security, monitoring and low cost.
+## Phase checklist
+- [x] Phase 1 — Receive and decode live F1 25 PS5 telemetry
+- [x] Phase 2 — Operational local dashboard, automatic track recording and lap comparison
+- [ ] Phase 3 — AWS backend and monitoring (planning)
+- [ ] Phase 4 — Data-grounded AI analysis
+- [ ] Phase 5 — Voice and live coaching
+- [ ] Phase 6 — Advanced streaming and portfolio polish
 
-### Phase checklist
-- [ ] Phase 1 — Receive and decode live F1 25 PS5 UDP telemetry
-- [ ] Phase 2 — Build local live race-control dashboard
-- [ ] Phase 3 — Deploy AWS backend and monitoring
-- [ ] Phase 4 — Integrate data-grounded AI analysis
-- [ ] Phase 5 — Add voice and live coaching
-- [ ] Phase 6 — Evaluate advanced streaming and polish portfolio
+## Phase 1 — Completed and validated
+- Configured PS5 F1 25 UDP format 2025 on port 20777 at 60 Hz.
+- Implemented Python binary decoding for supported packet IDs 0, 1, 2, 3, 6, 7 and 10.
+- Published atomic JSON telemetry snapshots approximately every 0.2 seconds.
+- Validated live speed, throttle, brake, gear, lap timing, leaderboard, tyre and ERS data; see [Phase 1 evidence](docs/PHASE_1_TELEMETRY.md).
 
-### Next action
-Confirm PS5/MacBook network setup and Python version; configure F1 25 telemetry and test receipt of UDP packets.
+## Phase 2 — Core implementation operational
+- React/TypeScript dashboard receives local telemetry through `websocket_server.py` on port 8765.
+- Live gauges, timing, standings, vehicle data, circuit map and telemetry charts implemented.
+- `race_analysis.py` automatically captures circuit geometry when a valid completed lap permits it.
+- Distance-aligned lap samples support current/last/best comparisons.
+- Local best/last lap JSON and track geometry are saved under `data/`; frontend has static track files for browser access.
+- Phase 2 documentation records successful live lap comparison and frontend production build.
 
-### Evidence to capture
-Document setup, sample *sanitised* packet metadata, test results, architecture changes, screenshots and cost decisions as phases progress.
+## Known gaps before cloud integration
+1. `race_analysis.py` is called from the WebSocket client handler, so processing depends on an active dashboard connection.
+2. Best/last lap files are overwritten; durable per-lap history is not yet implemented.
+3. No persistent upload queue, retries, authentication or AWS backend exists.
+4. Automatic track files created under `data/tracks/` are not automatically made available as static frontend assets in every case.
 
-### Phase 1 — PS5 Telemetry Integration
+## Phase 3 — Proposed, not deployed
+- Preserve the local UDP/WebSocket/React experience.
+- Make completed laps independently and durably recorded, with unique identifiers and retryable local upload queue.
+- Design SAM/CloudFormation for API Gateway HTTP API, Lambda, DynamoDB, S3, IAM and CloudWatch.
+- Set AWS budgets/retention and validate cost assumptions before deploying; target £5/month.
+- Capture architecture decisions, tests, monitoring evidence and cleanup instructions for portfolio use.
 
-**Status:** In Progress
-
-#### Completed milestones
-- [x] Configured F1 25 UDP telemetry on PS5.
-- [x] Identified the MacBook's local IP address.
-- [x] Established UDP communication over the local network.
-- [x] Created a Python UDP receiver using the `socket` library.
-- [x] Successfully received live telemetry packets on UDP port `20777`.
-- [x] Committed the initial receiver to GitHub.
-
-#### Technical configuration
-- **Platform:** PlayStation 5 — F1 25
-- **Receiver:** macOS / Python 3.9.6
-- **Protocol:** UDP over IPv4
-- **Port:** 20777
-- **Telemetry format:** 2025
-- **Configured send rate:** 60 Hz
-
-#### Next milestones
-- [ ] Decode binary UDP telemetry packets.
-- [ ] Extract speed, throttle, brake, gear and lap data.
-- [ ] Validate decoded values against live gameplay.
-- [ ] Implement structured telemetry output.
-
-#### Key learning
-Established a working local-network telemetry pipeline between a PS5 and MacBook using Python sockets. Verified that the game transmits UDP packets that can be captured for further processing.
+**Next action:** Review and agree Phase 3 Milestone 1 (durable local lap recording) before any application changes or AWS deployment.

@@ -1,154 +1,64 @@
-# Phase 2 — Live Racing Dashboard
+# Phase 2 — Live Racing Dashboard and Lap Analysis
 
-**Status:** Core dashboard operational; further improvements planned.
+**Status:** Core implementation operational locally. AWS not deployed.
 
-## 1. Objective
-
-Build a real-time racing dashboard that receives genuine telemetry from F1 25 on PS5, visualises driving performance and displays the car's position on a recorded circuit.
-
-## 2. Architecture
-
+## Implemented architecture
 ```text
-PS5 — F1 25
-    |
-    | UDP telemetry (port 20777)
-    v
-MacBook — Python UDP Receiver
-    |
-    v
-telemetry_latest.json
-    |
-    v
-Python WebSocket Server
-    |
-    | ws://127.0.0.1:8765
-    v
-React + TypeScript Dashboard
-    |
-    +-- Speed and gear
-    +-- Throttle and brake
-    +-- Lap and session information
-    +-- Live telemetry charts
-    +-- Leaderboard
-    +-- Tyre and vehicle information
-    +-- Circuit map and live car position
+PS5 F1 25 --UDP:20777--> udp_receiver.py
+  --> telemetry_latest.json (atomic snapshot updates, ~0.2 s)
+  --> websocket_server.py (127.0.0.1:8765)
+       |--> race_analysis.py (processes new snapshot timestamps)
+       |      |--> data/tracks/track_<id>_<length>.json
+       |      |--> data/laps/track_<id>_<length>_last.json
+       |      +--> data/laps/track_<id>_<length>_best.json
+       +--> React / TypeScript / Vite dashboard
 ```
 
-All Phase 2 services run locally. No AWS infrastructure is required at this stage.
+## Dashboard
+- Live speed, gear, RPM, throttle, brake, session and lap data, leaderboard and vehicle condition.
+- Shared throttle/brake graph (0–100%) and recent telemetry history.
+- Circuit map from recorded track coordinates and current car world position; fallback when track geometry is unavailable.
+- Current-lap vs best-lap distance-aligned speed comparison, where sufficient samples exist.
+- Phase 4 AI engineer banner is a placeholder, not live AI coaching.
 
-## 3. Technologies
+## Automatic track recording and lap comparison
+`race_analysis.py` tracks session UID, track ID and track length; it accumulates position, distance, speed, throttle and brake samples. On sequential lap transitions, it validates coverage, monotonicity and validity before accepting a completed lap. It writes latest and fastest accepted laps to local JSON files using temporary files and atomic replacement. When no track geometry exists, it can save a near-closed circuit from a validated lap.
 
-| Technology | Purpose |
-|---|---|
-| Python | Receive, decode and process telemetry |
-| UDP | Receive telemetry packets from the PS5 |
-| WebSockets | Stream telemetry to the browser |
-| React | Build the dashboard interface |
-| TypeScript | Type-check frontend code |
-| Vite | Frontend development and build tooling |
-| Recharts | Visualise live telemetry |
-| SVG | Render circuit geometry and car position |
-| Git and GitHub | Version control and project documentation |
+`track_recorder.py` is also present as an independent, manually run track-recording utility. Track geometry under `data/tracks/` is not always automatically copied into `frontend/public/tracks/`; static assets are used for browser track loading.
 
-## 4. Implementation
+## Run locally
+Install Python dependencies (including `websockets`) in `.venv`, and frontend npm dependencies. Then use three terminals from the repository root:
 
-### UDP telemetry
-
-The existing `udp_receiver.py` receives F1 25 telemetry and periodically updates `telemetry_latest.json`.
-
-The telemetry includes speed, gear, throttle, brake, lap information, session details, leaderboard information and world-position coordinates.
-
-### WebSocket integration
-
-`websocket_server.py` reads the latest telemetry snapshot and sends updates to connected browser clients.
-
-The server runs locally on port 8765 and restricts accepted browser origins to configured local development addresses.
-
-### React dashboard
-
-The dashboard is located in `frontend/`.
-
-Live telemetry is used to update the driving metrics and charts. The speed trace and throttle/brake graph display approximately 30 seconds of recent data.
-
-The dashboard retains its original visual design while replacing selected illustrative elements with genuine telemetry.
-
-### Track recording
-
-`track_recorder.py` records world-position coordinates from telemetry.
-
-Recorded circuit coordinates are saved under `data/tracks/`.
-
-The first recorded circuit is Melbourne, identified by track ID 0. A lap recording produced 444 positional points, with an approximately 8.2-metre gap between its first and last points.
-
-A copy of the recorded circuit is stored in `frontend/public/tracks/` for browser access.
-
-### Dynamic track map
-
-The React dashboard loads the circuit file corresponding to the telemetry `track_id`.
-
-Recorded world coordinates are scaled and projected into an SVG view. The player's current `world_x` and `world_z` coordinates position a live marker on the map.
-
-If a circuit file is unavailable, the dashboard displays a fallback message rather than an incorrect track.
-
-## 5. Running the application locally
-
-From the repository root, start the UDP receiver:
-
+Terminal 1:
 ```bash
 source .venv/bin/activate
 python udp_receiver.py
 ```
-
-In a separate terminal, start the WebSocket server:
-
+Terminal 2:
 ```bash
 source .venv/bin/activate
 python websocket_server.py
 ```
-
-In another terminal, start the frontend:
-
+Terminal 3:
 ```bash
 cd frontend
 npm run dev
 ```
+Open the Vite URL. The server accepts the configured localhost origins (5173/5174).
 
-Open the local URL displayed by Vite.
+## Verification documented during Phase 2
+- Local WebSocket feed and React dashboard displayed live PS5 telemetry.
+- Automatic track recording and lap comparison were reported working.
+- Latest and best lap JSON files were generated.
+- React production build was reported successful.
 
-To record a circuit, run the UDP receiver and start the track recorder in another terminal:
+These are prior validation results, not fresh tests performed for this documentation update.
 
-```bash
-source .venv/bin/activate
-python track_recorder.py
-```
+## Known limitations
+- Race analysis is invoked from the WebSocket client handler; without a connected dashboard, automatic recording may not progress.
+- Files ending `_last.json` and `_best.json` are replaced by subsequent laps; full historical lap retention is not yet implemented.
+- Recording state is in memory and does not resume an unfinished lap after process restart.
+- No AWS upload queue or cloud persistence exists yet.
 
-After recording, copy the saved circuit JSON into `frontend/public/tracks/` to make it available to the dashboard.
-
-## 6. Validation completed
-## Phase 2 Enhancements — Automatic Track Recording and Lap Comparison
-
-### Automatic circuit recording
-- `race_analysis.py` processes live telemetry received through the WebSocket server.
-- Uses session identifiers and track information to distinguish circuits.
-- Records circuit coordinates and saves new track maps under `data/tracks/`.
-- Supports existing circuit maps as a fallback.
-
-### Live lap comparison
-- Records speed, throttle, braking and distance throughout each lap.
-- Detects completed laps and validates telemetry coverage.
-- Tracks the latest completed lap and fastest valid recorded lap.
-- Displays distance-aligned speed comparisons in the React dashboard.
-- Saves lap recordings locally under `data/laps/`.
-
-### Architecture
-PS5 → UDP Receiver → WebSocket Server → Race Analysis → React Dashboard
-
-### Data management
-- Recorded lap files are excluded from Git using `.gitignore`.
-- Temporary upgrade backups are excluded from Git.
-- Race analysis currently runs locally without AWS infrastructure.
-
-### Verification
-- Live lap comparison confirmed working.
-- Best and latest lap JSON files successfully generated.
-- React production build completed successfully.
+## Phase 3 handoff
+Preserve the local pipeline, decouple durable lap recording from dashboard connections, add unique lap files and retryable uploads, then integrate the planned serverless AWS backend.
