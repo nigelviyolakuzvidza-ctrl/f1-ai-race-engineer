@@ -4,7 +4,7 @@
 
 ## Project overview
 
-F1 AI Race Engineer is a hands-on engineering project that turns real telemetry from **F1 25 on PlayStation 5** into a live race-control dashboard. It combines network data collection, Python packet decoding, local real-time streaming, and a React/TypeScript interface for analysing driving performance.
+F1 AI Race Engineer is a hands-on cloud engineering project that turns real telemetry from **F1 25 on PlayStation 5** into a live race-control dashboard. It combines network data collection, Python packet decoding, local real-time streaming, and a React/TypeScript interface for analysing driving performance.
 
 The current system runs locally on a MacBook. The next stage is a serverless AWS backend for durable session storage and analysis, followed by an AI-powered voice race engineer. **AWS and AI functionality are planned, not currently live.**
 
@@ -12,16 +12,14 @@ The current system runs locally on a MacBook. The next stage is a serverless AWS
 
 A 27-second recording shows real PS5 gameplay alongside the dashboard responding to live telemetry.
 
-**[Watch the live telemetry demo](PASTE_GITHUB_VIDEO_URL_HERE)**
-
-> Replace `PASTE_GITHUB_VIDEO_URL_HERE` with the GitHub video attachment URL. This link is a placeholder until the video is added.
+https://github.com/user-attachments/assets/6dbae607-6869-4c45-a687-dc367fb970c4
 
 ## What works today
 
 - **Live telemetry:** Receive F1 25 UDP packets on port `20777`, decoding supported motion, session, lap, event, car telemetry, status and damage data.
-- **Local processing:** Write structured snapshots to `telemetry_latest.json` approximately five times per second.
+- **Local processing:** Writes structured snapshots to `telemetry_latest.json` approximately five times per second.
 - **Real-time dashboard:** Stream snapshots through a Python WebSocket server to a React/TypeScript frontend.
-- **Race monitoring:** Display speed, RPM, gear, throttle and brake inputs, lap timing, leaderboard, vehicle condition and supported circuit maps.
+- **Race monitoring:** Display speed, RPM, gear, throttle, brake inputs, lap timing, leaderboard, vehicle condition and supported circuit maps.
 - **Performance analysis:** Plot throttle and brake together on a 0–100% chart and compare current, latest and fastest laps using distance-aligned speed samples.
 - **Track recording:** Automatically record circuit geometry when sufficient valid lap samples are available and plot the player's position using world coordinates.
 
@@ -43,8 +41,38 @@ Python WebSocket server (websocket_server.py)
     ▼
 React + TypeScript / Vite dashboard
 ```
-
 All processing and visualisation currently run locally. The AWS backend is not yet deployed.
+
+## Architecture Decisions & Trade-offs
+
+The project was inspired by a similar project demonstration at AWS 2026 Summit in London. During the initial design phase, I explored how a similar architecture could be implemented using AWS managed services.
+
+The original considerations included:
+
+| AWS Service | Potential Use Case | Architectural Decision |
+|---|---|---|
+| Amazon ECS | Containerised telemetry processing | Deferred in favour of lightweight local Python processing and a planned serverless backend |
+| Amazon MSK (Apache Kafka) | High-throughput telemetry streaming | Deferred due to cost and operational complexity relative to the current workload |
+| Amazon Managed Service for Apache Flink | Continuous streaming analytics and event processing | Deferred until more advanced real-time analysis is required |
+| Amazon DynamoDB | Storage of structured racing and lap data | Selected for the planned AWS backend |
+| Amazon Bedrock | AI-powered race analysis and strategic recommendations | Planned for a future development phase |
+
+### Design Rationale
+
+Rather than replicating an enterprise-scale streaming architecture, I opted for a lightweight, serverless approach.
+
+The key considerations were:
+
+- **Cost optimisation:** Targeting an AWS operating budget of approximately £5/month, avoiding continuously running infrastructure where possible.
+- **Right-sizing:** A single PlayStation 5 telemetry source does not currently justify distributed streaming infrastructure designed for significantly larger workloads.
+- **Operational simplicity:** Python, WebSockets and serverless AWS services reduce infrastructure management while supporting the required functionality.
+- **Scalability:** Maintaining a architecture that can evolve towards managed streaming and more sophisticated analytics if workload requirements increase.
+- **Practical engineering:** Prioritising a functional, measurable system before introducing additional architectural complexity.
+
+### Future Considerations
+
+Services such as Amazon MSK and Managed Service for Apache Flink may be revisited if the project expands to support multiple telemetry sources, more complex event processing or larger-scale historical and real-time analysis.
+
 
 ## Technology stack
 
