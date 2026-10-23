@@ -204,7 +204,7 @@ The following behaviours were observed:
 
 ## 10. Recreating Phase 1
 
-1. Clone the GitHub repository.
+1. Clone my GitHub repository to VS Code.
 2. Confirm Python is installed.
 3. Connect the PS5 and MacBook to a network that allows UDP communication.
 4. Identify the MacBook's local IP address.
